@@ -57,6 +57,9 @@ NEW_COLUMNS = {
         "published_date": "VARCHAR(20)",
         "metadata_source": "VARCHAR(20)",
     },
+    "users": {
+        "status_count_types": "VARCHAR(50) DEFAULT 'highlight,note,bookmark'",
+    },
 }
 
 

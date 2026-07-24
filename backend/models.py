@@ -30,6 +30,10 @@ class User(UserMixin, db.Model):
     display_pref = db.Column(db.String(20), default="both", nullable=False)
     theme = db.Column(db.String(10), default="system", nullable=False)  # light/dark/system
 
+    # Comma-separated subset of highlight/note/bookmark that counts toward a
+    # book's "copied" status (none/partial/full).
+    status_count_types = db.Column(db.String(50), default="highlight,note,bookmark", nullable=False)
+
     # SMTP settings (per user)
     smtp_server = db.Column(db.String(255), default="")
     smtp_port = db.Column(db.Integer, default=587)
@@ -64,6 +68,7 @@ class User(UserMixin, db.Model):
             "disabled": self.disabled,
             "display_pref": self.display_pref,
             "theme": self.theme,
+            "status_count_types": self.status_count_types.split(",") if self.status_count_types else [],
             "weekly_digest_enabled": self.weekly_digest_enabled,
             "weekly_digest_day": self.weekly_digest_day,
             "weekly_digest_time": self.weekly_digest_time,
@@ -106,6 +111,20 @@ class Book(db.Model):
     def to_dict(self):
         total = self.highlights.count()
         copied = self.highlights.filter(Highlight.copied_at.isnot(None)).count()
+
+        status_types = (self.user.status_count_types or "highlight,note,bookmark").split(",")
+        status_q = self.highlights.filter(Highlight.type.in_(status_types))
+        status_total = status_q.count()
+        status_copied = status_q.filter(Highlight.copied_at.isnot(None)).count()
+        if status_total == 0:
+            copy_status = "full"
+        elif status_copied == 0:
+            copy_status = "none"
+        elif status_copied == status_total:
+            copy_status = "full"
+        else:
+            copy_status = "partial"
+
         return {
             "id": self.id,
             "title": self.title,
@@ -121,7 +140,7 @@ class Book(db.Model):
             "bookmark_count": self.highlights.filter_by(type="bookmark").count(),
             "total_count": total,
             "copied_count": copied,
-            "copy_status": "none" if copied == 0 else ("full" if copied == total else "partial"),
+            "copy_status": copy_status,
             "last_highlighted_at": self.last_highlighted_at.isoformat() if self.last_highlighted_at else None,
             "last_copied_at": self.last_copied_at.isoformat() if self.last_copied_at else None,
         }

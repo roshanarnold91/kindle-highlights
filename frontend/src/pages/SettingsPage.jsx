@@ -13,6 +13,12 @@ const THEME_OPTIONS = [
   { value: "midnight", label: "Midnight", swatch: "#0b1120" },
 ];
 
+const STATUS_TYPE_OPTIONS = [
+  { value: "highlight", label: "Highlights" },
+  { value: "note", label: "Notes" },
+  { value: "bookmark", label: "Bookmarks" },
+];
+
 export default function SettingsPage() {
   const { updateUser } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -65,6 +71,19 @@ export default function SettingsPage() {
   }
 
   if (!settings) return <p className="text-gray-400">Loading…</p>;
+
+  const statusCountTypes = settings.status_count_types || ["highlight", "note", "bookmark"];
+
+  function toggleStatusCountType(value) {
+    const next = statusCountTypes.includes(value)
+      ? statusCountTypes.filter((t) => t !== value)
+      : [...statusCountTypes, value];
+    if (next.length === 0) {
+      flash(setErr, "At least one type must count toward copy status");
+      return;
+    }
+    save({ status_count_types: next });
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -144,6 +163,33 @@ export default function SettingsPage() {
                 {opt.label}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="mt-4 text-sm">
+          <p className="mb-1">Count toward "copied" status</p>
+          <p className="mb-2 text-xs text-gray-400">
+            A book only shows as "Fully copied" once every selected type below has been copied.
+            Uncheck a type (e.g. Bookmarks) to stop it from affecting that status.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {STATUS_TYPE_OPTIONS.map((opt) => {
+              const active = statusCountTypes.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => toggleStatusCountType(opt.value)}
+                  className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                    active
+                      ? "border-blue-600 bg-blue-600 text-white"
+                      : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>

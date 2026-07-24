@@ -12,6 +12,7 @@ from models import Book, Highlight, db
 settings_bp = Blueprint("settings", __name__, url_prefix="/api/settings")
 
 DISPLAY_PREFS = ("location", "page", "both", "neither")
+HIGHLIGHT_TYPES = ("highlight", "note", "bookmark")
 
 
 @settings_bp.get("")
@@ -37,6 +38,12 @@ def update_settings():
         if data["theme"] not in ("light", "dark", "sepia", "midnight", "system"):
             return jsonify({"error": "invalid theme"}), 400
         current_user.theme = data["theme"]
+
+    if "status_count_types" in data:
+        types = [t for t in (data["status_count_types"] or []) if t in HIGHLIGHT_TYPES]
+        if not types:
+            return jsonify({"error": "at least one type must count toward copy status"}), 400
+        current_user.status_count_types = ",".join(types)
 
     if "smtp_server" in data:
         current_user.smtp_server = data["smtp_server"] or ""
