@@ -14,6 +14,13 @@ from parser import content_hash, merge_notes_into_highlights, parse_clippings
 import_bp = Blueprint("import_", __name__, url_prefix="/api")
 
 
+def _naive(dt):
+    """SQLite drops tzinfo on round-trip, so a freshly-loaded Book's
+    last_highlighted_at is naive while a newly-parsed entry's date_added is
+    timezone-aware. Normalize both to naive UTC before comparing."""
+    return dt.replace(tzinfo=None) if dt and dt.tzinfo else dt
+
+
 @import_bp.post("/import")
 @login_required
 def import_clippings():
@@ -101,7 +108,7 @@ def import_clippings():
         touched_books.add(book.id)
 
         if e["date_added"] and (
-            book.last_highlighted_at is None or e["date_added"] > book.last_highlighted_at
+            book.last_highlighted_at is None or _naive(e["date_added"]) > _naive(book.last_highlighted_at)
         ):
             book.last_highlighted_at = e["date_added"]
 

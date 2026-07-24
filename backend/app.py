@@ -125,7 +125,10 @@ def start_scheduler(app):
                     continue
                 if now.hour != hour:
                     continue
-                if user.last_digest_sent_at and (now - user.last_digest_sent_at).total_seconds() < 6 * 3600:
+                last_sent = user.last_digest_sent_at
+                if last_sent and last_sent.tzinfo is None:
+                    last_sent = last_sent.replace(tzinfo=timezone.utc)
+                if last_sent and (now - last_sent).total_seconds() < 6 * 3600:
                     continue
                 try:
                     sent = send_weekly_digest(user)
