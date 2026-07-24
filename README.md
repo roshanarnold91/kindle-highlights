@@ -21,6 +21,40 @@ formatted copy for pasting into OneNote (or anywhere else).
 - Mobile-first responsive UI with bottom navigation
 - Admin panel: user management, storage usage, app-wide SMTP fallback, import logs
 
+## Installing Docker on Windows
+
+If you're running this on Windows 11 (or 10), install Docker Desktop first:
+
+1. Enable WSL2 (Windows Subsystem for Linux), if you haven't already — open
+   PowerShell **as Administrator** and run:
+   ```powershell
+   wsl --install
+   ```
+   Reboot when prompted.
+2. Download and install **Docker Desktop for Windows** from
+   [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/).
+3. During setup, make sure **"Use WSL 2 based engine"** is enabled (Settings →
+   General). This is the default on modern installs and is required — the
+   older Hyper-V backend is not recommended.
+4. Launch Docker Desktop and wait for it to report "Docker Desktop is
+   running" in the system tray.
+5. Verify the install by opening PowerShell (a normal, non-admin window) and
+   running:
+   ```powershell
+   docker --version
+   docker compose version
+   ```
+   Both should print a version number.
+6. Create the folder Docker will use for app data, e.g.:
+   ```powershell
+   New-Item -ItemType Directory -Force J:\kindle-highlights
+   ```
+
+You can now follow the Quick start steps below using PowerShell instead of
+bash — the commands are the same, aside from `curl` and `cp` (PowerShell's
+built-in aliases for `Invoke-WebRequest`/`Copy-Item` handle these
+transparently, so no changes are needed).
+
 ## Quick start
 
 Requires Docker and Docker Compose.
