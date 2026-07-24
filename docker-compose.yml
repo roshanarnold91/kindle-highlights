@@ -1,0 +1,20 @@
+services:
+  kindle-highlights:
+    image: ghcr.io/roshanarnold91/kindle-highlights:latest
+    container_name: kindle-highlights
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-5000}:5000"
+    volumes:
+      - ${DATA_PATH:-./data}:/data
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set in .env}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set in .env}
+      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
+      APP_SMTP_SERVER: ${APP_SMTP_SERVER:-}
+      APP_SMTP_PORT: ${APP_SMTP_PORT:-587}
+      APP_SMTP_EMAIL: ${APP_SMTP_EMAIL:-}
+      APP_SMTP_PASSWORD: ${APP_SMTP_PASSWORD:-}
+      APP_SMTP_USE_TLS: ${APP_SMTP_USE_TLS:-true}
+      REMEMBER_COOKIE_DURATION_DAYS: ${REMEMBER_COOKIE_DURATION_DAYS:-30}
