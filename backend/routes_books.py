@@ -5,7 +5,7 @@ from flask_login import current_user, login_required
 
 import google_books
 import open_library
-from formatting import effective_pref, format_book_highlights
+from formatting import effective_pref, format_book_highlights, format_book_highlights_html
 from models import Book, CopyHistory, Highlight, db
 
 books_bp = Blueprint("books", __name__, url_prefix="/api")
@@ -154,6 +154,7 @@ def copy_book(book_id):
     highlights = q.order_by(Highlight.date_added.asc().nullslast()).all()
 
     text = format_book_highlights(book, highlights, current_user)
+    html = format_book_highlights_html(book, highlights, current_user)
 
     now = datetime.now(timezone.utc)
     for h in highlights:
@@ -165,7 +166,7 @@ def copy_book(book_id):
     db.session.add(history)
     db.session.commit()
 
-    return jsonify({"text": text, "count": len(highlights)})
+    return jsonify({"text": text, "html": html, "count": len(highlights)})
 
 
 @books_bp.post("/books/<int:book_id>/copy/reset")
@@ -192,6 +193,7 @@ def copy_highlight(highlight_id):
     highlight = Highlight.query.filter_by(id=highlight_id, user_id=current_user.id).first_or_404()
     book = Book.query.get(highlight.book_id)
     text = format_book_highlights(book, [highlight], current_user)
+    html = format_book_highlights_html(book, [highlight], current_user)
 
     now = datetime.now(timezone.utc)
     highlight.copied_at = now
@@ -202,4 +204,4 @@ def copy_highlight(highlight_id):
     db.session.add(history)
     db.session.commit()
 
-    return jsonify({"text": text, "count": 1})
+    return jsonify({"text": text, "html": html, "count": 1})

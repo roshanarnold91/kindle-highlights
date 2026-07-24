@@ -71,7 +71,7 @@ export default function BookDetailPage() {
 
   async function handleCopyBook(mode) {
     const data = await api.post(`/books/${bookId}/copy`, { mode, types: selectedTypes });
-    const ok = await copyText(data.text);
+    const ok = await copyText(data.text, data.html);
     showToast(ok ? `Copied ${data.count} highlight(s) to clipboard` : "Copy failed");
     load();
   }
@@ -85,7 +85,7 @@ export default function BookDetailPage() {
 
   async function handleCopyHighlight(highlight) {
     const data = await api.post(`/highlights/${highlight.id}/copy`);
-    const ok = await copyText(data.text);
+    const ok = await copyText(data.text, data.html);
     showToast(ok ? "Copied to clipboard" : "Copy failed");
     load();
   }

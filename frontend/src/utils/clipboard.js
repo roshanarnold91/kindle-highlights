@@ -1,4 +1,17 @@
-export async function copyText(text) {
+export async function copyText(text, html) {
+  if (html && navigator.clipboard?.write && window.ClipboardItem) {
+    try {
+      const item = new ClipboardItem({
+        "text/plain": new Blob([text], { type: "text/plain" }),
+        "text/html": new Blob([html], { type: "text/html" }),
+      });
+      await navigator.clipboard.write([item]);
+      return true;
+    } catch {
+      // fall through to plain-text paths below
+    }
+  }
+
   try {
     await navigator.clipboard.writeText(text);
     return true;
