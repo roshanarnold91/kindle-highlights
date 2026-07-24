@@ -104,25 +104,54 @@ def parse_clippings(raw_text):
     return entries
 
 
-def merge_notes_into_highlights(entries):
-    """Attach Note entries to the Highlight entry sharing the same
-    title/author/location (Kindle's convention for annotated highlights).
-    Bookmarks and unattached notes remain standalone entries."""
-    highlight_index = {}
-    result = []
+def _parse_loc_range(location):
+    if not location:
+        return None
+    parts = location.split("-")
+    try:
+        start = int(parts[0])
+        end = int(parts[-1])
+    except ValueError:
+        return None
+    return start, end
 
-    for e in entries:
-        if e["type"] == "highlight":
-            key = (e["title"], e["author"], e["location"] or e["page"])
-            highlight_index[key] = e
-            e["note"] = None
-            result.append(e)
+
+def _find_note_target(note, highlights):
+    """Kindle notes are usually pinned to a single position that falls
+    within the location range of the highlight they annotate, rather than
+    matching it exactly (e.g. highlight 512-514, note at 512)."""
+    same_book = [
+        h for h in highlights if h["title"] == note["title"] and h["author"] == note["author"]
+    ]
+
+    note_range = _parse_loc_range(note["location"])
+    if note_range:
+        for h in same_book:
+            h_range = _parse_loc_range(h["location"])
+            if h_range and h_range[0] <= note_range[0] <= h_range[1]:
+                return h
+
+    if note["page"]:
+        page_matches = [h for h in same_book if h["page"] == note["page"]]
+        if len(page_matches) == 1:
+            return page_matches[0]
+
+    return None
+
+
+def merge_notes_into_highlights(entries):
+    """Attach Note entries to the Highlight entry they annotate.
+    Bookmarks and unattached notes remain standalone entries."""
+    highlights = [e for e in entries if e["type"] == "highlight"]
+    for h in highlights:
+        h["note"] = None
+
+    result = list(highlights)
 
     for e in entries:
         if e["type"] != "note":
             continue
-        key = (e["title"], e["author"], e["location"] or e["page"])
-        target = highlight_index.get(key)
+        target = _find_note_target(e, highlights)
         if target is not None:
             target["note"] = e["text"]
         else:
