@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import HighlightCard from "../components/HighlightCard";
 import MetadataMatchModal from "../components/MetadataMatchModal";
-import { copyText } from "../utils/clipboard";
+import { copyFromPromise } from "../utils/clipboard";
 
 const PREF_OPTIONS = [
   { value: "", label: "Use my default" },
@@ -70,9 +70,9 @@ export default function BookDetailPage() {
   }
 
   async function handleCopyBook(mode) {
-    const data = await api.post(`/books/${bookId}/copy`, { mode, types: selectedTypes });
-    const ok = await copyText(data.text, data.html);
-    showToast(ok ? `Copied ${data.count} highlight(s) to clipboard` : "Copy failed");
+    const dataPromise = api.post(`/books/${bookId}/copy`, { mode, types: selectedTypes });
+    const { ok, data } = await copyFromPromise(dataPromise);
+    showToast(ok && data ? `Copied ${data.count} highlight(s) to clipboard` : "Copy failed");
     load();
   }
 
@@ -84,9 +84,9 @@ export default function BookDetailPage() {
   }
 
   async function handleCopyHighlight(highlight) {
-    const data = await api.post(`/highlights/${highlight.id}/copy`);
-    const ok = await copyText(data.text, data.html);
-    showToast(ok ? "Copied to clipboard" : "Copy failed");
+    const dataPromise = api.post(`/highlights/${highlight.id}/copy`);
+    const { ok, data } = await copyFromPromise(dataPromise);
+    showToast(ok && data ? "Copied to clipboard" : "Copy failed");
     load();
   }
 
