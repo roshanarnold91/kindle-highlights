@@ -1,11 +1,16 @@
 from datetime import datetime, timezone
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user, login_required
 
 import google_books
 import open_library
-from formatting import effective_pref, format_book_highlights, format_book_highlights_html
+from formatting import (
+    effective_pref,
+    format_book_highlights,
+    format_book_highlights_html,
+    wrap_html_document,
+)
 from models import Book, CopyHistory, Highlight, db
 
 books_bp = Blueprint("books", __name__, url_prefix="/api")
@@ -102,40 +107,61 @@ def metadata_match(book_id):
     return jsonify({"book": book.to_dict()})
 
 
-@books_bp.get("/books/<int:book_id>/highlights")
-@login_required
-def list_highlights(book_id):
-    book = Book.query.filter_by(id=book_id, user_id=current_user.id).first_or_404()
+def _filtered_highlights_query(book, args):
     q = Highlight.query.filter_by(book_id=book.id, user_id=current_user.id)
 
-    types = [t for t in request.args.getlist("type") if t in ("highlight", "note", "bookmark")]
+    types = [t for t in args.getlist("type") if t in ("highlight", "note", "bookmark")]
     if types:
         q = q.filter(Highlight.type.in_(types))
 
-    copied = request.args.get("copied")
+    copied = args.get("copied")
     if copied == "true":
         q = q.filter(Highlight.copied_at.isnot(None))
     elif copied == "false":
         q = q.filter(Highlight.copied_at.is_(None))
 
-    date_from = request.args.get("date_from")
-    date_to = request.args.get("date_to")
+    date_from = args.get("date_from")
+    date_to = args.get("date_to")
     if date_from:
         q = q.filter(Highlight.date_added >= datetime.fromisoformat(date_from))
     if date_to:
         q = q.filter(Highlight.date_added <= datetime.fromisoformat(date_to))
 
-    search = (request.args.get("search") or "").strip()
+    search = (args.get("search") or "").strip()
     if search:
         like = f"%{search}%"
         q = q.filter(db.or_(Highlight.text.ilike(like), Highlight.note.ilike(like)))
 
+    return q
+
+
+@books_bp.get("/books/<int:book_id>/highlights")
+@login_required
+def list_highlights(book_id):
+    book = Book.query.filter_by(id=book_id, user_id=current_user.id).first_or_404()
+    q = _filtered_highlights_query(book, request.args)
     highlights = q.order_by(Highlight.date_added.asc().nullslast()).all()
     return jsonify({
         "book": book.to_dict(),
         "highlights": [h.to_dict() for h in highlights],
         "display_pref": effective_pref(current_user, book),
     })
+
+
+@books_bp.get("/books/<int:book_id>/export")
+@login_required
+def export_highlights(book_id):
+    book = Book.query.filter_by(id=book_id, user_id=current_user.id).first_or_404()
+    q = _filtered_highlights_query(book, request.args)
+    highlights = q.order_by(Highlight.date_added.asc().nullslast()).all()
+
+    body_html = format_book_highlights_html(book, highlights, current_user)
+    doc = wrap_html_document(book.title, body_html)
+
+    safe_name = "".join(c for c in book.title if c.isalnum() or c in " -_").strip() or "highlights"
+    response = current_app.response_class(doc, mimetype="text/html")
+    response.headers["Content-Disposition"] = f'attachment; filename="{safe_name}.html"'
+    return response
 
 
 @books_bp.post("/books/<int:book_id>/copy")

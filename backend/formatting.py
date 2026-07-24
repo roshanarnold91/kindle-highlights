@@ -152,3 +152,15 @@ def format_book_highlights_html(book, highlights, user):
         f"{body}"
         "</div>"
     )
+
+
+def wrap_html_document(title, body_html):
+    """Wrap a body fragment as a standalone, self-contained HTML document
+    suitable for saving/opening directly (double-clicked, imported into
+    Word, opened in a browser) rather than just pasted from the clipboard."""
+    return (
+        "<!doctype html>\n"
+        '<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+        f"<title>{_esc(title)}</title>\n</head>\n"
+        f'<body style="margin:0;padding:24px;background:#ffffff;">\n{body_html}\n</body>\n</html>\n'
+    )

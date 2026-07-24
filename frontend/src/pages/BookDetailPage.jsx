@@ -35,29 +35,36 @@ export default function BookDetailPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  const load = useCallback(() => {
+  const buildFilterParams = useCallback(() => {
     const params = new URLSearchParams();
     selectedTypes.forEach((t) => params.append("type", t));
     if (copied) params.set("copied", copied);
     if (search) params.set("search", search);
     if (dateFrom) params.set("date_from", dateFrom);
     if (dateTo) params.set("date_to", dateTo);
+    return params;
+  }, [selectedTypes, copied, search, dateFrom, dateTo]);
 
+  const load = useCallback(() => {
     setLoading(true);
     api
-      .get(`/books/${bookId}/highlights?${params.toString()}`)
+      .get(`/books/${bookId}/highlights?${buildFilterParams().toString()}`)
       .then((data) => {
         setBook(data.book);
         setHighlights(data.highlights);
         setDisplayPref(data.display_pref);
       })
       .finally(() => setLoading(false));
-  }, [bookId, selectedTypes, copied, search, dateFrom, dateTo]);
+  }, [bookId, buildFilterParams]);
 
   function toggleType(value) {
     setSelectedTypes((prev) =>
       prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value]
     );
+  }
+
+  function handleExport() {
+    window.location.href = `/api/books/${bookId}/export?${buildFilterParams().toString()}`;
   }
 
   useEffect(() => {
@@ -164,6 +171,12 @@ export default function BookDetailPage() {
             className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
           >
             Email me
+          </button>
+          <button
+            onClick={handleExport}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+          >
+            Export
           </button>
           <button
             onClick={handleResetCopied}
