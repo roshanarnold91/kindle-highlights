@@ -117,7 +117,7 @@ class Book(db.Model):
         status_total = status_q.count()
         status_copied = status_q.filter(Highlight.copied_at.isnot(None)).count()
         if status_total == 0:
-            copy_status = "full"
+            copy_status = "none"
         elif status_copied == 0:
             copy_status = "none"
         elif status_copied == status_total:
