@@ -39,7 +39,8 @@ class User(UserMixin, db.Model):
     smtp_port = db.Column(db.Integer, default=587)
     smtp_email = db.Column(db.String(255), default="")
     smtp_password = db.Column(db.String(255), default="")
-    smtp_use_tls = db.Column(db.Boolean, default=True)
+    smtp_use_tls = db.Column(db.Boolean, default=True)  # STARTTLS, typically port 587
+    smtp_use_ssl = db.Column(db.Boolean, default=False)  # implicit SSL/TLS, typically port 465
     # Where highlight emails/digests are delivered. Falls back to smtp_email
     # (the sending account) when unset, so existing "email myself" setups
     # keep working unchanged.
@@ -85,6 +86,7 @@ class User(UserMixin, db.Model):
                 "smtp_port": self.smtp_port,
                 "smtp_email": self.smtp_email,
                 "smtp_use_tls": self.smtp_use_tls,
+                "smtp_use_ssl": self.smtp_use_ssl,
                 "smtp_password_set": bool(self.smtp_password),
                 "notify_email": self.notify_email,
             })

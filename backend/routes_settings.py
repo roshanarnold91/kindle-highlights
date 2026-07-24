@@ -55,6 +55,8 @@ def update_settings():
         current_user.smtp_password = data["smtp_password"]
     if "smtp_use_tls" in data:
         current_user.smtp_use_tls = bool(data["smtp_use_tls"])
+    if "smtp_use_ssl" in data:
+        current_user.smtp_use_ssl = bool(data["smtp_use_ssl"])
     if "notify_email" in data:
         current_user.notify_email = (data["notify_email"] or "").strip()
 

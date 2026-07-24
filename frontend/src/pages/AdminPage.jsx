@@ -214,6 +214,21 @@ export default function AdminPage() {
               onBlur={(e) => e.target.value && saveSmtp({ password: e.target.value })}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800"
             />
+            <label className="block text-xs text-gray-500 dark:text-gray-400 sm:col-span-2">
+              Encryption
+              <select
+                defaultValue={smtp.use_ssl ? "ssl" : smtp.use_tls ? "starttls" : "none"}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  saveSmtp({ use_ssl: v === "ssl", use_tls: v === "starttls" });
+                }}
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800"
+              >
+                <option value="starttls">STARTTLS (usually port 587)</option>
+                <option value="ssl">SSL/TLS (usually port 465)</option>
+                <option value="none">None</option>
+              </select>
+            </label>
           </div>
         </section>
       )}

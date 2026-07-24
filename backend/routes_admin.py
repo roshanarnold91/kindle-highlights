@@ -117,7 +117,7 @@ def all_import_logs():
 
 @admin_bp.get("/smtp")
 def get_app_smtp():
-    keys = ["server", "port", "email", "use_tls"]
+    keys = ["server", "port", "email", "use_tls", "use_ssl"]
     values = {k: AdminSetting.query.get(f"smtp_{k}") for k in keys}
     return jsonify({
         "smtp": {
@@ -125,6 +125,7 @@ def get_app_smtp():
             "port": int(values["port"].value) if values["port"] else current_app.config["APP_SMTP_PORT"],
             "email": values["email"].value if values["email"] else current_app.config["APP_SMTP_EMAIL"],
             "use_tls": (values["use_tls"].value == "true") if values["use_tls"] else current_app.config["APP_SMTP_USE_TLS"],
+            "use_ssl": (values["use_ssl"].value == "true") if values["use_ssl"] else current_app.config["APP_SMTP_USE_SSL"],
             "password_set": bool(
                 (AdminSetting.query.get("smtp_password") or AdminSetting()).value
                 or current_app.config["APP_SMTP_PASSWORD"]
@@ -154,6 +155,8 @@ def update_app_smtp():
         set_setting("smtp_password", data["password"])
     if "use_tls" in data:
         set_setting("smtp_use_tls", "true" if data["use_tls"] else "false")
+    if "use_ssl" in data:
+        set_setting("smtp_use_ssl", "true" if data["use_ssl"] else "false")
 
     db.session.commit()
     return jsonify({"ok": True})

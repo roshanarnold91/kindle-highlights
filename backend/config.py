@@ -20,3 +20,4 @@ class Config:
     APP_SMTP_EMAIL = os.environ.get("APP_SMTP_EMAIL", "")
     APP_SMTP_PASSWORD = os.environ.get("APP_SMTP_PASSWORD", "")
     APP_SMTP_USE_TLS = os.environ.get("APP_SMTP_USE_TLS", "true").lower() == "true"
+    APP_SMTP_USE_SSL = os.environ.get("APP_SMTP_USE_SSL", "false").lower() == "true"

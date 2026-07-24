@@ -1,5 +1,6 @@
 import logging
 import smtplib
+import ssl
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -34,6 +35,7 @@ def _app_fallback_smtp():
         "email": email,
         "password": get("smtp_password") or cfg.get("APP_SMTP_PASSWORD"),
         "use_tls": (get("smtp_use_tls") == "true") if get("smtp_use_tls") else cfg.get("APP_SMTP_USE_TLS", True),
+        "use_ssl": (get("smtp_use_ssl") == "true") if get("smtp_use_ssl") else cfg.get("APP_SMTP_USE_SSL", False),
     }
 
 
@@ -45,6 +47,7 @@ def _resolve_smtp(user, use_app_fallback=True):
             "email": user.smtp_email,
             "password": user.smtp_password,
             "use_tls": user.smtp_use_tls,
+            "use_ssl": user.smtp_use_ssl,
         }
     if use_app_fallback:
         return _app_fallback_smtp()
@@ -65,12 +68,18 @@ def send_email(user, subject, body, to_addr=None):
     msg.attach(MIMEText(body, "plain"))
 
     try:
-        with smtplib.SMTP(smtp_cfg["server"], smtp_cfg["port"], timeout=15) as server:
-            if smtp_cfg["use_tls"]:
-                server.starttls()
-            server.login(smtp_cfg["email"], smtp_cfg["password"])
-            server.sendmail(smtp_cfg["email"], [to_addr], msg.as_string())
-    except (smtplib.SMTPException, OSError) as exc:
+        if smtp_cfg.get("use_ssl"):
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(smtp_cfg["server"], smtp_cfg["port"], timeout=15, context=context) as server:
+                server.login(smtp_cfg["email"], smtp_cfg["password"])
+                server.sendmail(smtp_cfg["email"], [to_addr], msg.as_string())
+        else:
+            with smtplib.SMTP(smtp_cfg["server"], smtp_cfg["port"], timeout=15) as server:
+                if smtp_cfg["use_tls"]:
+                    server.starttls()
+                server.login(smtp_cfg["email"], smtp_cfg["password"])
+                server.sendmail(smtp_cfg["email"], [to_addr], msg.as_string())
+    except (smtplib.SMTPException, OSError, ssl.SSLError) as exc:
         raise EmailError(str(exc)) from exc
 
     return to_addr

@@ -234,13 +234,20 @@ export default function SettingsPage() {
               className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
             />
           </label>
-          <label className="flex items-center gap-2 text-sm sm:col-span-2">
-            <input
-              type="checkbox"
-              defaultChecked={settings.smtp_use_tls}
-              onChange={(e) => save({ smtp_use_tls: e.target.checked })}
-            />
-            Use STARTTLS
+          <label className="block text-xs text-gray-500 dark:text-gray-400 sm:col-span-2">
+            Encryption
+            <select
+              defaultValue={settings.smtp_use_ssl ? "ssl" : settings.smtp_use_tls ? "starttls" : "none"}
+              onChange={(e) => {
+                const v = e.target.value;
+                save({ smtp_use_ssl: v === "ssl", smtp_use_tls: v === "starttls" });
+              }}
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+            >
+              <option value="starttls">STARTTLS (usually port 587)</option>
+              <option value="ssl">SSL/TLS (usually port 465)</option>
+              <option value="none">None</option>
+            </select>
           </label>
         </div>
         <button
