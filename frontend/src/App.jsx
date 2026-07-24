@@ -1,6 +1,9 @@
+import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useAuth } from "./context/AuthContext";
+import { useTheme } from "./context/ThemeContext";
 import AdminPage from "./pages/AdminPage";
 import BookDetailPage from "./pages/BookDetailPage";
 import LibraryPage from "./pages/LibraryPage";
@@ -17,6 +20,14 @@ function Protected({ children, adminOnly }) {
 }
 
 export default function App() {
+  const { user } = useAuth();
+  const { setTheme } = useTheme();
+
+  useEffect(() => {
+    if (user?.theme) setTheme(user.theme);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.theme]);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

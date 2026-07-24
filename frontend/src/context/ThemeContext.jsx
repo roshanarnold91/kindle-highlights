@@ -2,11 +2,20 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 const ThemeContext = createContext(null);
 
+export const THEMES = ["light", "dark", "sepia", "midnight", "system"];
+const DARK_FAMILY = new Set(["dark", "midnight"]);
+
+function resolveTheme(theme) {
+  if (theme === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  return theme;
+}
+
 function applyTheme(theme) {
-  const isDark =
-    theme === "dark" ||
-    (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  document.documentElement.classList.toggle("dark", isDark);
+  const resolved = resolveTheme(theme);
+  document.documentElement.dataset.theme = resolved;
+  document.documentElement.classList.toggle("dark", DARK_FAMILY.has(resolved));
 }
 
 export function ThemeProvider({ children }) {

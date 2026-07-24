@@ -5,6 +5,14 @@ import { useTheme } from "../context/ThemeContext";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
+const THEME_OPTIONS = [
+  { value: "system", label: "System", swatch: "linear-gradient(135deg, #f9fafb 50%, #111827 50%)" },
+  { value: "light", label: "Light", swatch: "#f9fafb" },
+  { value: "dark", label: "Dark", swatch: "#111827" },
+  { value: "sepia", label: "Sepia", swatch: "#f3ead9" },
+  { value: "midnight", label: "Midnight", swatch: "#0b1120" },
+];
+
 export default function SettingsPage() {
   const { updateUser } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -112,18 +120,32 @@ export default function SettingsPage() {
             <option value="neither">Neither</option>
           </select>
         </label>
-        <label className="block text-sm">
-          Theme
-          <select
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800"
-          >
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="system">System</option>
-          </select>
-        </label>
+        <div className="text-sm">
+          <p className="mb-2">Theme</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {THEME_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setTheme(opt.value);
+                  save({ theme: opt.value });
+                }}
+                className={`flex flex-col items-center gap-1.5 rounded-md border p-2 text-xs font-medium transition ${
+                  theme === opt.value
+                    ? "border-blue-600 ring-1 ring-blue-600"
+                    : "border-gray-300 hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-600"
+                }`}
+              >
+                <span
+                  className="h-8 w-full rounded border border-gray-300 dark:border-gray-600"
+                  style={{ background: opt.swatch }}
+                />
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="mb-8 rounded-lg border border-gray-200 p-4 dark:border-gray-800">

@@ -90,6 +90,10 @@ class Book(db.Model):
     author = db.Column(db.String(300), default="")
     cover_url = db.Column(db.String(500), nullable=True)
     google_books_id = db.Column(db.String(100), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    publisher = db.Column(db.String(255), nullable=True)
+    published_date = db.Column(db.String(20), nullable=True)
+    metadata_source = db.Column(db.String(20), nullable=True)  # google/openlibrary/manual
     display_pref_override = db.Column(db.String(20), nullable=True)  # None = use user default
     created_at = db.Column(db.DateTime, default=utcnow)
     last_highlighted_at = db.Column(db.DateTime, default=utcnow)
@@ -107,6 +111,10 @@ class Book(db.Model):
             "title": self.title,
             "author": self.author,
             "cover_url": self.cover_url,
+            "description": self.description,
+            "publisher": self.publisher,
+            "published_date": self.published_date,
+            "metadata_source": self.metadata_source,
             "display_pref_override": self.display_pref_override,
             "highlight_count": self.highlights.filter_by(type="highlight").count(),
             "note_count": self.highlights.filter_by(type="note").count(),

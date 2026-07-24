@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
 
+import google_books
+import open_library
 from formatting import effective_pref, format_book_highlights
 from models import Book, CopyHistory, Highlight, db
 
@@ -64,15 +66,51 @@ def update_book(book_id):
     return jsonify({"book": book.to_dict()})
 
 
+@books_bp.get("/books/<int:book_id>/metadata-search")
+@login_required
+def metadata_search(book_id):
+    book = Book.query.filter_by(id=book_id, user_id=current_user.id).first_or_404()
+    query = (request.args.get("q") or "").strip() or f"{book.title} {book.author}".strip()
+
+    results = []
+    try:
+        results += google_books.search_metadata(query, max_results=5)
+    except Exception:
+        pass
+    try:
+        results += open_library.search_metadata(query, max_results=5)
+    except Exception:
+        pass
+
+    return jsonify({"results": results})
+
+
+@books_bp.post("/books/<int:book_id>/metadata-match")
+@login_required
+def metadata_match(book_id):
+    book = Book.query.filter_by(id=book_id, user_id=current_user.id).first_or_404()
+    data = request.get_json(silent=True) or {}
+
+    book.cover_url = data.get("cover_url")
+    book.description = data.get("description")
+    book.publisher = data.get("publisher")
+    book.published_date = data.get("published_date")
+    book.metadata_source = data.get("source") or "manual"
+    book.google_books_id = data.get("source_id") if data.get("source") == "google" else None
+
+    db.session.commit()
+    return jsonify({"book": book.to_dict()})
+
+
 @books_bp.get("/books/<int:book_id>/highlights")
 @login_required
 def list_highlights(book_id):
     book = Book.query.filter_by(id=book_id, user_id=current_user.id).first_or_404()
     q = Highlight.query.filter_by(book_id=book.id, user_id=current_user.id)
 
-    htype = request.args.get("type")
-    if htype in ("highlight", "note", "bookmark"):
-        q = q.filter_by(type=htype)
+    types = [t for t in request.args.getlist("type") if t in ("highlight", "note", "bookmark")]
+    if types:
+        q = q.filter(Highlight.type.in_(types))
 
     copied = request.args.get("copied")
     if copied == "true":
@@ -106,10 +144,13 @@ def copy_book(book_id):
     book = Book.query.filter_by(id=book_id, user_id=current_user.id).first_or_404()
     data = request.get_json(silent=True) or {}
     mode = data.get("mode", "all")  # all | new
+    types = [t for t in (data.get("types") or []) if t in ("highlight", "note", "bookmark")]
 
     q = Highlight.query.filter_by(book_id=book.id, user_id=current_user.id)
     if mode == "new":
         q = q.filter(Highlight.copied_at.is_(None))
+    if types:
+        q = q.filter(Highlight.type.in_(types))
     highlights = q.order_by(Highlight.date_added.asc().nullslast()).all()
 
     text = format_book_highlights(book, highlights, current_user)
@@ -125,6 +166,24 @@ def copy_book(book_id):
     db.session.commit()
 
     return jsonify({"text": text, "count": len(highlights)})
+
+
+@books_bp.post("/books/<int:book_id>/copy/reset")
+@login_required
+def reset_copy_status(book_id):
+    book = Book.query.filter_by(id=book_id, user_id=current_user.id).first_or_404()
+    highlights = Highlight.query.filter_by(book_id=book.id, user_id=current_user.id).all()
+
+    for h in highlights:
+        h.copied_at = None
+    book.last_copied_at = None
+
+    history = CopyHistory(user_id=current_user.id, book_id=book.id, copy_type="reset")
+    history.set_ids([h.id for h in highlights])
+    db.session.add(history)
+    db.session.commit()
+
+    return jsonify({"book": book.to_dict()})
 
 
 @books_bp.post("/highlights/<int:highlight_id>/copy")

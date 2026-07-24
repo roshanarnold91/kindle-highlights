@@ -5,3 +5,107 @@
 html, body, #root {
   height: 100%;
 }
+
+/* Theme palettes. "light" and "dark" match Tailwind's stock gray/blue
+   scales exactly (no visual change from before theming was introduced).
+   "sepia" and "midnight" are new palettes layered on the same variable
+   names so every existing gray/blue utility class re-skins automatically
+   without touching component files. */
+:root,
+[data-theme="light"] {
+  --color-white: #ffffff;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+}
+
+[data-theme="dark"] {
+  --color-white: #ffffff;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+}
+
+/* Warm, paper-toned reading theme (light family). */
+[data-theme="sepia"] {
+  --color-white: #fffaf0;
+  --gray-50: #faf6ee;
+  --gray-100: #f3ead9;
+  --gray-200: #e8dcc3;
+  --gray-300: #d9c7a3;
+  --gray-400: #b3a082;
+  --gray-500: #8a765a;
+  --gray-600: #6b5a44;
+  --gray-700: #52432f;
+  --gray-800: #3a2f21;
+  --gray-900: #2b2115;
+  --blue-50: #f6ead9;
+  --blue-100: #ecd9b8;
+  --blue-200: #ddc08a;
+  --blue-300: #d1a25c;
+  --blue-400: #b8863f;
+  --blue-500: #9c6c2c;
+  --blue-600: #7a5220;
+  --blue-700: #603f18;
+  --blue-800: #4a3012;
+  --blue-900: #3a2510;
+}
+
+/* Deep indigo/navy high-contrast theme (dark family). */
+[data-theme="midnight"] {
+  --color-white: #ffffff;
+  --gray-50: #f5f7fb;
+  --gray-100: #e7ebf5;
+  --gray-200: #c6cee2;
+  --gray-300: #aab4cf;
+  --gray-400: #8a97b8;
+  --gray-500: #55648a;
+  --gray-600: #33415f;
+  --gray-700: #1f2a44;
+  --gray-800: #131b2e;
+  --gray-900: #0b1120;
+  --blue-50: #e7ebff;
+  --blue-100: #c7d1ff;
+  --blue-200: #a3b0ff;
+  --blue-300: #7d8bff;
+  --blue-400: #5f6ffc;
+  --blue-500: #4b58f0;
+  --blue-600: #3b46e0;
+  --blue-700: #2d3fae;
+  --blue-800: #232f82;
+  --blue-900: #16215c;
+}

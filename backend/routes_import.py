@@ -6,7 +6,8 @@ from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from google_books import fetch_cover
+import google_books
+import open_library
 from models import Book, Highlight, ImportLog, db
 from parser import content_hash, merge_notes_into_highlights, parse_clippings
 
@@ -52,17 +53,27 @@ def import_clippings():
                 user_id=current_user.id, title=e["title"], author=e["author"]
             ).first()
             if book is None:
-                cover_url, gb_id = None, None
+                meta = None
                 try:
-                    cover_url, gb_id = fetch_cover(e["title"], e["author"])
+                    meta = google_books.fetch_metadata(e["title"], e["author"])
                 except Exception:
                     pass
+                if not meta or not meta.get("cover_url"):
+                    try:
+                        meta = open_library.fetch_metadata(e["title"], e["author"]) or meta
+                    except Exception:
+                        pass
+                meta = meta or {}
                 book = Book(
                     user_id=current_user.id,
                     title=e["title"],
                     author=e["author"],
-                    cover_url=cover_url,
-                    google_books_id=gb_id,
+                    cover_url=meta.get("cover_url"),
+                    google_books_id=meta.get("source_id") if meta.get("source") == "google" else None,
+                    description=meta.get("description"),
+                    publisher=meta.get("publisher"),
+                    published_date=meta.get("published_date"),
+                    metadata_source=meta.get("source"),
                 )
                 db.session.add(book)
                 db.session.flush()

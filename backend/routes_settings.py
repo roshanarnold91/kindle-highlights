@@ -34,7 +34,7 @@ def update_settings():
         current_user.display_pref = data["display_pref"]
 
     if "theme" in data:
-        if data["theme"] not in ("light", "dark", "system"):
+        if data["theme"] not in ("light", "dark", "sepia", "midnight", "system"):
             return jsonify({"error": "invalid theme"}), 400
         current_user.theme = data["theme"]
 

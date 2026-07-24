@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import HighlightCard from "../components/HighlightCard";
+import MetadataMatchModal from "../components/MetadataMatchModal";
 import { copyText } from "../utils/clipboard";
 
 const PREF_OPTIONS = [
@@ -12,6 +13,12 @@ const PREF_OPTIONS = [
   { value: "neither", label: "Neither" },
 ];
 
+const TYPE_OPTIONS = [
+  { value: "highlight", label: "Highlights" },
+  { value: "note", label: "Notes" },
+  { value: "bookmark", label: "Bookmarks" },
+];
+
 export default function BookDetailPage() {
   const { bookId } = useParams();
   const [book, setBook] = useState(null);
@@ -19,8 +26,10 @@ export default function BookDetailPage() {
   const [displayPref, setDisplayPref] = useState("both");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
+  const [showMetadataModal, setShowMetadataModal] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
-  const [type, setType] = useState("");
+  const [selectedTypes, setSelectedTypes] = useState([]);
   const [copied, setCopied] = useState("");
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -28,7 +37,7 @@ export default function BookDetailPage() {
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
-    if (type) params.set("type", type);
+    selectedTypes.forEach((t) => params.append("type", t));
     if (copied) params.set("copied", copied);
     if (search) params.set("search", search);
     if (dateFrom) params.set("date_from", dateFrom);
@@ -43,7 +52,13 @@ export default function BookDetailPage() {
         setDisplayPref(data.display_pref);
       })
       .finally(() => setLoading(false));
-  }, [bookId, type, copied, search, dateFrom, dateTo]);
+  }, [bookId, selectedTypes, copied, search, dateFrom, dateTo]);
+
+  function toggleType(value) {
+    setSelectedTypes((prev) =>
+      prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value]
+    );
+  }
 
   useEffect(() => {
     load();
@@ -55,9 +70,16 @@ export default function BookDetailPage() {
   }
 
   async function handleCopyBook(mode) {
-    const data = await api.post(`/books/${bookId}/copy`, { mode });
+    const data = await api.post(`/books/${bookId}/copy`, { mode, types: selectedTypes });
     const ok = await copyText(data.text);
     showToast(ok ? `Copied ${data.count} highlight(s) to clipboard` : "Copy failed");
+    load();
+  }
+
+  async function handleResetCopied() {
+    if (!window.confirm(`Mark all ${book.total_count} entries in this book as not copied?`)) return;
+    await api.post(`/books/${bookId}/copy/reset`);
+    showToast("Copied status reset");
     load();
   }
 
@@ -99,6 +121,30 @@ export default function BookDetailPage() {
           <p className="mt-1 text-sm text-gray-400">
             {book.total_count} entries · {book.copied_count} copied
           </p>
+          {(book.description || book.publisher || book.published_date) && (
+            <div className="mt-2">
+              <button
+                onClick={() => setShowAbout((v) => !v)}
+                className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+              >
+                {showAbout ? "Hide" : "About this book"}
+              </button>
+              {showAbout && (
+                <div className="mt-1 max-w-lg text-sm text-gray-600 dark:text-gray-300">
+                  {book.description && <p className="mb-1">{book.description}</p>}
+                  <p className="text-xs text-gray-400">
+                    {[book.publisher, book.published_date].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <button
+            onClick={() => setShowMetadataModal(true)}
+            className="mt-2 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+          >
+            Edit cover / metadata
+          </button>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -119,6 +165,12 @@ export default function BookDetailPage() {
           >
             Email me
           </button>
+          <button
+            onClick={handleResetCopied}
+            className="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+          >
+            Reset copied status
+          </button>
         </div>
       </div>
 
@@ -129,16 +181,25 @@ export default function BookDetailPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="col-span-2 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 md:col-span-2"
         />
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800"
-        >
-          <option value="">All types</option>
-          <option value="highlight">Highlights</option>
-          <option value="note">Notes</option>
-          <option value="bookmark">Bookmarks</option>
-        </select>
+        <div className="col-span-2 flex flex-wrap items-center gap-1 sm:col-span-1">
+          {TYPE_OPTIONS.map((opt) => {
+            const active = selectedTypes.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => toggleType(opt.value)}
+                className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                  active
+                    ? "border-blue-600 bg-blue-600 text-white"
+                    : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
         <select
           value={copied}
           onChange={(e) => setCopied(e.target.value)}
@@ -193,6 +254,17 @@ export default function BookDetailPage() {
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 rounded-md bg-gray-900 px-4 py-2 text-sm text-white shadow-lg dark:bg-gray-100 dark:text-gray-900 md:bottom-6">
           {toast}
         </div>
+      )}
+
+      {showMetadataModal && (
+        <MetadataMatchModal
+          book={book}
+          onClose={() => setShowMetadataModal(false)}
+          onMatched={(updatedBook) => {
+            setBook(updatedBook);
+            showToast("Book metadata updated");
+          }}
+        />
       )}
     </div>
   );

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
+from sqlalchemy import inspect, text
 
 from auth import auth_bp, init_login
 from config import Config
@@ -40,12 +41,41 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        ensure_columns()
         bootstrap_admin(app)
 
     register_static_routes(app)
     start_scheduler(app)
 
     return app
+
+
+NEW_COLUMNS = {
+    "books": {
+        "description": "TEXT",
+        "publisher": "VARCHAR(255)",
+        "published_date": "VARCHAR(20)",
+        "metadata_source": "VARCHAR(20)",
+    },
+}
+
+
+def ensure_columns():
+    """Lightweight migration: add any model columns missing from an existing DB.
+
+    db.create_all() only creates missing tables, not missing columns on tables
+    that already exist, so upgrades that add columns need this to apply to
+    already-running deployments.
+    """
+    inspector = inspect(db.engine)
+    for table, columns in NEW_COLUMNS.items():
+        if table not in inspector.get_table_names():
+            continue
+        existing = {col["name"] for col in inspector.get_columns(table)}
+        for name, ddl_type in columns.items():
+            if name not in existing:
+                db.session.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl_type}"))
+    db.session.commit()
 
 
 def bootstrap_admin(app):
