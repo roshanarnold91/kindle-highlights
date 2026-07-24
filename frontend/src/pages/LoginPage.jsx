@@ -40,7 +40,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <label className="mb-3 block text-sm">
+        <label className="mb-3 block text-sm text-gray-700 dark:text-gray-300">
           Username
           <input
             className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
@@ -51,7 +51,7 @@ export default function LoginPage() {
           />
         </label>
 
-        <label className="mb-3 block text-sm">
+        <label className="mb-3 block text-sm text-gray-700 dark:text-gray-300">
           Password
           <input
             type="password"
@@ -62,7 +62,7 @@ export default function LoginPage() {
           />
         </label>
 
-        <label className="mb-5 flex items-center gap-2 text-sm">
+        <label className="mb-5 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
           Remember me
         </label>

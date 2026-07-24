@@ -1,6 +1,6 @@
 import hashlib
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 SEPARATOR = "=========="
 
@@ -30,7 +30,7 @@ def _parse_date(date_str):
     date_str = date_str.strip()
     for fmt in DATE_FORMATS:
         try:
-            return datetime.strptime(date_str, fmt)
+            return datetime.strptime(date_str, fmt).replace(tzinfo=timezone.utc)
         except ValueError:
             continue
     return None
