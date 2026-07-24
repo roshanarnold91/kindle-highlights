@@ -63,8 +63,8 @@ export default function SettingsPage() {
 
   async function handleTestEmail() {
     try {
-      await api.post("/settings/test-email");
-      flash(setMsg, "Test email sent");
+      const data = await api.post("/settings/test-email");
+      flash(setMsg, data.sent_to ? `Test email sent to ${data.sent_to}` : "Test email sent");
     } catch (e) {
       flash(setErr, e.message);
     }
@@ -210,18 +210,30 @@ export default function SettingsPage() {
             onBlur={(e) => save({ smtp_port: e.target.value })}
             className="rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800"
           />
-          <input
-            placeholder="Email address"
-            defaultValue={settings.smtp_email}
-            onBlur={(e) => save({ smtp_email: e.target.value })}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800"
-          />
+          <label className="block text-xs text-gray-500 dark:text-gray-400">
+            Sending account (login)
+            <input
+              placeholder="Email address"
+              defaultValue={settings.smtp_email}
+              onBlur={(e) => save({ smtp_email: e.target.value })}
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+            />
+          </label>
           <input
             placeholder={settings.smtp_password_set ? "App password (saved — leave blank to keep)" : "App password"}
             type="password"
             onBlur={(e) => e.target.value && save({ smtp_password: e.target.value })}
             className="rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800"
           />
+          <label className="block text-xs text-gray-500 dark:text-gray-400 sm:col-span-2">
+            Send highlights to
+            <input
+              placeholder={settings.smtp_email ? `Defaults to ${settings.smtp_email}` : "Recipient email address"}
+              defaultValue={settings.notify_email}
+              onBlur={(e) => save({ notify_email: e.target.value })}
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+            />
+          </label>
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
             <input
               type="checkbox"

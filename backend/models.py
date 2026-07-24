@@ -40,6 +40,10 @@ class User(UserMixin, db.Model):
     smtp_email = db.Column(db.String(255), default="")
     smtp_password = db.Column(db.String(255), default="")
     smtp_use_tls = db.Column(db.Boolean, default=True)
+    # Where highlight emails/digests are delivered. Falls back to smtp_email
+    # (the sending account) when unset, so existing "email myself" setups
+    # keep working unchanged.
+    notify_email = db.Column(db.String(255), default="")
 
     # Digest / notification prefs
     weekly_digest_enabled = db.Column(db.Boolean, default=False)
@@ -82,6 +86,7 @@ class User(UserMixin, db.Model):
                 "smtp_email": self.smtp_email,
                 "smtp_use_tls": self.smtp_use_tls,
                 "smtp_password_set": bool(self.smtp_password),
+                "notify_email": self.notify_email,
             })
         return data
 

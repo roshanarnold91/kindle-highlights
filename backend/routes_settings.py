@@ -55,6 +55,8 @@ def update_settings():
         current_user.smtp_password = data["smtp_password"]
     if "smtp_use_tls" in data:
         current_user.smtp_use_tls = bool(data["smtp_use_tls"])
+    if "notify_email" in data:
+        current_user.notify_email = (data["notify_email"] or "").strip()
 
     if "weekly_digest_enabled" in data:
         current_user.weekly_digest_enabled = bool(data["weekly_digest_enabled"])
@@ -73,10 +75,10 @@ def update_settings():
 @login_required
 def test_email():
     try:
-        send_test_email(current_user)
+        to_addr = send_test_email(current_user)
     except EmailError as exc:
         return jsonify({"error": str(exc)}), 400
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "sent_to": to_addr})
 
 
 @settings_bp.post("/email/book/<int:book_id>")

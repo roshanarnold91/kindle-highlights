@@ -59,6 +59,7 @@ NEW_COLUMNS = {
     },
     "users": {
         "status_count_types": "VARCHAR(50) DEFAULT 'highlight,note,bookmark'",
+        "notify_email": "VARCHAR(255) DEFAULT ''",
     },
 }
 

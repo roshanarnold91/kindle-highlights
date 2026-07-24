@@ -56,7 +56,7 @@ def send_email(user, subject, body, to_addr=None):
     if not smtp_cfg:
         raise EmailError("No SMTP configuration available (per-user or app fallback).")
 
-    to_addr = to_addr or user.smtp_email or smtp_cfg["email"]
+    to_addr = to_addr or user.notify_email or user.smtp_email or smtp_cfg["email"]
 
     msg = MIMEMultipart()
     msg["From"] = smtp_cfg["email"]
@@ -73,9 +73,11 @@ def send_email(user, subject, body, to_addr=None):
     except (smtplib.SMTPException, OSError) as exc:
         raise EmailError(str(exc)) from exc
 
+    return to_addr
+
 
 def send_test_email(user):
-    send_email(
+    return send_email(
         user,
         subject="Kindle Highlights Manager — Test Email",
         body="This is a test email from Kindle Highlights Manager. Your SMTP settings are working.",
