@@ -8,7 +8,12 @@ from email.mime.text import MIMEText
 
 from flask import current_app
 
-from formatting import format_book_highlights, format_book_highlights_html, wrap_html_document
+from formatting import (
+    format_book_highlights,
+    format_book_highlights_html,
+    format_book_highlights_pdf,
+    wrap_html_document,
+)
 from pdf_export import html_to_pdf_bytes
 
 logger = logging.getLogger(__name__)
@@ -56,7 +61,7 @@ def _resolve_smtp(user, use_app_fallback=True):
     return None
 
 
-def send_email(user, subject, body, to_addr=None, attachment=None):
+def send_email(user, subject, body, to_addr=None, attachment=None, html_body=None):
     smtp_cfg = _resolve_smtp(user)
     if not smtp_cfg:
         raise EmailError("No SMTP configuration available (per-user or app fallback).")
@@ -67,7 +72,14 @@ def send_email(user, subject, body, to_addr=None, attachment=None):
     msg["From"] = smtp_cfg["email"]
     msg["To"] = to_addr
     msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
+
+    if html_body:
+        alt = MIMEMultipart("alternative")
+        alt.attach(MIMEText(body, "plain"))
+        alt.attach(MIMEText(html_body, "html"))
+        msg.attach(alt)
+    else:
+        msg.attach(MIMEText(body, "plain"))
 
     if attachment:
         filename, data = attachment
@@ -102,23 +114,39 @@ def send_test_email(user):
 
 
 def _pdf_attachment(book, highlights, user):
-    doc = wrap_html_document(book.title, format_book_highlights_html(book, highlights, user, emoji=False))
+    doc = wrap_html_document(book.title, format_book_highlights_pdf(book, highlights, user))
     safe_name = "".join(c for c in book.title if c.isalnum() or c in " -_").strip() or "highlights"
     return (f"{safe_name}.pdf", html_to_pdf_bytes(doc))
+
+
+def _email_html_body(book, highlights, user):
+    return f"<html><body>{format_book_highlights_html(book, highlights, user)}</body></html>"
 
 
 def send_book_email(user, book, highlights):
     body = format_book_highlights(book, highlights, user)
     body += "\n\n(A formatted PDF of these highlights is attached.)"
     subject = f"Highlights: {book.title}"
-    send_email(user, subject, body, attachment=_pdf_attachment(book, highlights, user))
+    send_email(
+        user,
+        subject,
+        body,
+        attachment=_pdf_attachment(book, highlights, user),
+        html_body=_email_html_body(book, highlights, user),
+    )
 
 
 def send_selected_highlights_email(user, book, highlights):
     body = format_book_highlights(book, highlights, user)
     body += "\n\n(A formatted PDF of these highlights is attached.)"
     subject = f"Selected highlights from {book.title}"
-    send_email(user, subject, body, attachment=_pdf_attachment(book, highlights, user))
+    send_email(
+        user,
+        subject,
+        body,
+        attachment=_pdf_attachment(book, highlights, user),
+        html_body=_email_html_body(book, highlights, user),
+    )
 
 
 def send_copy_notification(user, book, count):
@@ -145,14 +173,23 @@ def send_weekly_digest(user):
         by_book.setdefault(h.book_id, []).append(h)
 
     sections = []
+    html_sections = []
     for book_id, hls in by_book.items():
         book = Book.query.get(book_id)
         if not book:
             continue
         sections.append(format_book_highlights(book, hls, user))
+        html_sections.append(format_book_highlights_html(book, hls, user))
 
     body = f"Weekly digest — {len(new_highlights)} new highlight(s) across {len(by_book)} book(s)\n\n"
     body += ("\n\n" + ("=" * 40) + "\n\n").join(sections)
 
-    send_email(user, subject="Kindle Highlights — Weekly Digest", body=body)
+    divider = '<hr style="margin:32px 0;border:none;border-top:1px solid #e5e7eb;">'
+    html_body = (
+        f'<html><body><p style="color:#6b7280;font-size:13px;">'
+        f"Weekly digest — {len(new_highlights)} new highlight(s) across {len(by_book)} book(s)</p>"
+        f"{divider.join(html_sections)}</body></html>"
+    )
+
+    send_email(user, subject="Kindle Highlights — Weekly Digest", body=body, html_body=html_body)
     return True

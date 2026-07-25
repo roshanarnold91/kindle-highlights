@@ -9,6 +9,7 @@ from formatting import (
     effective_pref,
     format_book_highlights,
     format_book_highlights_html,
+    format_book_highlights_pdf,
     wrap_html_document,
 )
 from models import Book, CopyHistory, Highlight, db
@@ -166,7 +167,7 @@ def export_highlights(book_id):
         response.headers["Content-Disposition"] = f'attachment; filename="{safe_name}.html"'
         return response
 
-    body_html = format_book_highlights_html(book, highlights, current_user, emoji=False)
+    body_html = format_book_highlights_pdf(book, highlights, current_user)
     doc = wrap_html_document(book.title, body_html)
     pdf_bytes = html_to_pdf_bytes(doc)
     response = current_app.response_class(pdf_bytes, mimetype="application/pdf")
