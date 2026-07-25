@@ -12,6 +12,7 @@ from formatting import (
     wrap_html_document,
 )
 from models import Book, CopyHistory, Highlight, db
+from pdf_export import html_to_pdf_bytes
 
 books_bp = Blueprint("books", __name__, url_prefix="/api")
 
@@ -155,12 +156,21 @@ def export_highlights(book_id):
     q = _filtered_highlights_query(book, request.args)
     highlights = q.order_by(Highlight.date_added.asc().nullslast()).all()
 
-    body_html = format_book_highlights_html(book, highlights, current_user)
-    doc = wrap_html_document(book.title, body_html)
-
     safe_name = "".join(c for c in book.title if c.isalnum() or c in " -_").strip() or "highlights"
-    response = current_app.response_class(doc, mimetype="text/html")
-    response.headers["Content-Disposition"] = f'attachment; filename="{safe_name}.html"'
+    fmt = request.args.get("format", "pdf")
+
+    if fmt == "html":
+        body_html = format_book_highlights_html(book, highlights, current_user)
+        doc = wrap_html_document(book.title, body_html)
+        response = current_app.response_class(doc, mimetype="text/html")
+        response.headers["Content-Disposition"] = f'attachment; filename="{safe_name}.html"'
+        return response
+
+    body_html = format_book_highlights_html(book, highlights, current_user, emoji=False)
+    doc = wrap_html_document(book.title, body_html)
+    pdf_bytes = html_to_pdf_bytes(doc)
+    response = current_app.response_class(pdf_bytes, mimetype="application/pdf")
+    response.headers["Content-Disposition"] = f'attachment; filename="{safe_name}.pdf"'
     return response
 
 

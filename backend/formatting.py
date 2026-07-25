@@ -73,27 +73,33 @@ def _meta_html(highlight, pref):
     )
 
 
-def _note_callout_html(text, *, standalone):
+def _note_callout_html(text, *, standalone, emoji=True):
     label_size = "11px" if standalone else "10px"
+    label = "📝 NOTE" if emoji else "NOTE"
     return (
         '<div style="margin-top:{top}px;padding:8px 12px;background:#fef3c7;'
         'border-left:3px solid #d97706;border-radius:4px;">'
         '<div style="font-size:{size};font-weight:700;'
-        'letter-spacing:0.04em;color:#92400e;margin-bottom:3px;">📝 NOTE</div>'
+        'color:#92400e;margin-bottom:3px;">{label}</div>'
         '<div style="color:#78350f;white-space:pre-wrap;">{text}</div>'
         "</div>"
-    ).format(top=0 if standalone else 8, size=label_size, text=_esc(text).replace("\n", "<br>"))
+    ).format(top=0 if standalone else 8, size=label_size, label=label, text=_esc(text).replace("\n", "<br>"))
 
 
-def format_highlight_block_html(highlight, pref):
+def format_highlight_block_html(highlight, pref, emoji=True):
     """Render one highlight/note/bookmark as a self-contained HTML block with
     inline styles, so the formatting survives paste into rich-text targets
     (Notion, Google Docs, email clients) — Notes get a distinct amber callout
-    so they stand out from plain Highlights, matching the app's own UI."""
+    so they stand out from plain Highlights, matching the app's own UI.
+
+    `emoji=False` omits the decorative emoji from labels — the PDF renderer
+    (reportlab, via xhtml2pdf) has no emoji glyphs and would otherwise show
+    tofu/missing-glyph boxes instead."""
     if highlight.type == "note":
+        label = "📝 NOTE" if emoji else "NOTE"
         inner = (
             '<div style="font-size:11px;font-weight:700;'
-            'letter-spacing:0.04em;color:#6b7280;margin-bottom:4px;">📝 NOTE</div>'
+            f'color:#6b7280;margin-bottom:4px;">{label}</div>'
             '<div style="color:#78350f;white-space:pre-wrap;">'
             + _esc(highlight.text or "").replace("\n", "<br>")
             + "</div>"
@@ -107,32 +113,34 @@ def format_highlight_block_html(highlight, pref):
         return block
 
     if highlight.type == "bookmark":
+        label = "🔖 Bookmark" if emoji else "Bookmark"
         block = (
             '<div style="margin:0 0 16px 0;padding:8px 14px;color:#6b7280;'
-            'font-style:italic;border-left:3px solid #d1d5db;">🔖 Bookmark'
+            f'font-style:italic;border-left:3px solid #d1d5db;">{label}'
         )
         block += _meta_html(highlight, pref)
         block += "</div>"
         return block
 
     # highlight, optionally with a merged note
+    label = "🖍️ HIGHLIGHT" if emoji else "HIGHLIGHT"
     block = (
         '<div style="margin:0 0 16px 0;padding:10px 14px;background:#f8fafc;'
         'border-left:4px solid #94a3b8;border-radius:6px;">'
         '<div style="font-size:11px;font-weight:700;'
-        'letter-spacing:0.04em;color:#64748b;margin-bottom:4px;">🖍️ HIGHLIGHT</div>'
+        f'color:#64748b;margin-bottom:4px;">{label}</div>'
         '<div style="color:#111827;white-space:pre-wrap;">'
         + _esc(highlight.text or "").replace("\n", "<br>")
         + "</div>"
     )
     if highlight.note:
-        block += _note_callout_html(highlight.note, standalone=False)
+        block += _note_callout_html(highlight.note, standalone=False, emoji=emoji)
     block += _meta_html(highlight, pref)
     block += "</div>"
     return block
 
 
-def format_book_highlights_html(book, highlights, user):
+def format_book_highlights_html(book, highlights, user, emoji=True):
     pref = effective_pref(user, book)
     title = _esc(book.title)
     if book.author:
@@ -141,7 +149,7 @@ def format_book_highlights_html(book, highlights, user):
     total = len(highlights)
     meta_line = f"{total} highlight{'s' if total != 1 else ''}"
 
-    body = "".join(format_highlight_block_html(h, pref) for h in highlights)
+    body = "".join(format_highlight_block_html(h, pref, emoji=emoji) for h in highlights)
     if not body:
         body = '<p style="color:#9ca3af;">(no highlights)</p>'
 
@@ -161,6 +169,7 @@ def wrap_html_document(title, body_html):
     return (
         "<!doctype html>\n"
         '<html lang="en">\n<head>\n<meta charset="utf-8">\n'
-        f"<title>{_esc(title)}</title>\n</head>\n"
+        f"<title>{_esc(title)}</title>\n"
+        "<style>@page { size: A4; margin: 2cm; }</style>\n</head>\n"
         f'<body style="margin:0;padding:24px;background:#ffffff;">\n{body_html}\n</body>\n</html>\n'
     )

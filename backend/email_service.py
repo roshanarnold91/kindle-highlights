@@ -2,12 +2,14 @@ import logging
 import smtplib
 import ssl
 from datetime import datetime, timedelta, timezone
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from flask import current_app
 
-from formatting import format_book_highlights
+from formatting import format_book_highlights, format_book_highlights_html, wrap_html_document
+from pdf_export import html_to_pdf_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +56,7 @@ def _resolve_smtp(user, use_app_fallback=True):
     return None
 
 
-def send_email(user, subject, body, to_addr=None):
+def send_email(user, subject, body, to_addr=None, attachment=None):
     smtp_cfg = _resolve_smtp(user)
     if not smtp_cfg:
         raise EmailError("No SMTP configuration available (per-user or app fallback).")
@@ -66,6 +68,12 @@ def send_email(user, subject, body, to_addr=None):
     msg["To"] = to_addr
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
+
+    if attachment:
+        filename, data = attachment
+        part = MIMEApplication(data, _subtype="pdf")
+        part.add_header("Content-Disposition", "attachment", filename=filename)
+        msg.attach(part)
 
     try:
         if smtp_cfg.get("use_ssl"):
@@ -93,16 +101,24 @@ def send_test_email(user):
     )
 
 
+def _pdf_attachment(book, highlights, user):
+    doc = wrap_html_document(book.title, format_book_highlights_html(book, highlights, user, emoji=False))
+    safe_name = "".join(c for c in book.title if c.isalnum() or c in " -_").strip() or "highlights"
+    return (f"{safe_name}.pdf", html_to_pdf_bytes(doc))
+
+
 def send_book_email(user, book, highlights):
     body = format_book_highlights(book, highlights, user)
+    body += "\n\n(A formatted PDF of these highlights is attached.)"
     subject = f"Highlights: {book.title}"
-    send_email(user, subject, body)
+    send_email(user, subject, body, attachment=_pdf_attachment(book, highlights, user))
 
 
 def send_selected_highlights_email(user, book, highlights):
     body = format_book_highlights(book, highlights, user)
+    body += "\n\n(A formatted PDF of these highlights is attached.)"
     subject = f"Selected highlights from {book.title}"
-    send_email(user, subject, body)
+    send_email(user, subject, body, attachment=_pdf_attachment(book, highlights, user))
 
 
 def send_copy_notification(user, book, count):
