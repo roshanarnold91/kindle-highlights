@@ -83,6 +83,14 @@ def test_email():
     return jsonify({"ok": True, "sent_to": to_addr})
 
 
+def _parse_email_override(data):
+    to_addr = (data.get("to") or "").strip() or None
+    if to_addr and "@" not in to_addr:
+        return None, None, "please enter a valid email address"
+    subject = (data.get("subject") or "").strip() or None
+    return to_addr, subject, None
+
+
 @settings_bp.post("/email/book/<int:book_id>")
 @login_required
 def email_book(book_id):
@@ -92,8 +100,12 @@ def email_book(book_id):
         .order_by(Highlight.date_added.asc().nullslast())
         .all()
     )
+    data = request.get_json(silent=True) or {}
+    to_addr, subject, error = _parse_email_override(data)
+    if error:
+        return jsonify({"error": error}), 400
     try:
-        send_book_email(current_user, book, highlights)
+        send_book_email(current_user, book, highlights, to_addr=to_addr, subject=subject)
     except EmailError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify({"ok": True})
@@ -113,9 +125,13 @@ def email_selected():
     if not highlights:
         return jsonify({"error": "no matching highlights found"}), 404
 
+    to_addr, subject, error = _parse_email_override(data)
+    if error:
+        return jsonify({"error": error}), 400
+
     book = Book.query.get(highlights[0].book_id)
     try:
-        send_selected_highlights_email(current_user, book, highlights)
+        send_selected_highlights_email(current_user, book, highlights, to_addr=to_addr, subject=subject)
     except EmailError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify({"ok": True})

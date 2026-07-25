@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import HighlightCard from "../components/HighlightCard";
 import MetadataMatchModal from "../components/MetadataMatchModal";
+import SendEmailModal from "../components/SendEmailModal";
 import { copyFromPromise } from "../utils/clipboard";
 
 const PREF_OPTIONS = [
@@ -27,6 +28,7 @@ export default function BookDetailPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [showMetadataModal, setShowMetadataModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
 
   const [selectedTypes, setSelectedTypes] = useState([]);
@@ -103,13 +105,9 @@ export default function BookDetailPage() {
     load();
   }
 
-  async function handleEmailBook() {
-    try {
-      await api.post(`/settings/email/book/${bookId}`);
-      showToast("Email sent");
-    } catch (err) {
-      showToast(err.message);
-    }
+  async function handleSendEmail({ to, subject }) {
+    await api.post(`/settings/email/book/${bookId}`, { to, subject });
+    showToast(`Email sent${to ? ` to ${to}` : ""}`);
   }
 
   if (loading && !book) return <p className="text-gray-400">Loading…</p>;
@@ -167,10 +165,10 @@ export default function BookDetailPage() {
             Copy new only
           </button>
           <button
-            onClick={handleEmailBook}
+            onClick={() => setShowEmailModal(true)}
             className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
           >
-            Email me
+            Send email
           </button>
           <button
             onClick={handleExport}
@@ -277,6 +275,14 @@ export default function BookDetailPage() {
             setBook(updatedBook);
             showToast("Book metadata updated");
           }}
+        />
+      )}
+
+      {showEmailModal && (
+        <SendEmailModal
+          defaultSubject={`Highlights: ${book.title}`}
+          onClose={() => setShowEmailModal(false)}
+          onSend={handleSendEmail}
         />
       )}
     </div>

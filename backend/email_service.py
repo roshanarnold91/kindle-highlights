@@ -123,27 +123,27 @@ def _email_html_body(book, highlights, user):
     return f"<html><body>{format_book_highlights_html(book, highlights, user)}</body></html>"
 
 
-def send_book_email(user, book, highlights):
+def send_book_email(user, book, highlights, to_addr=None, subject=None):
     body = format_book_highlights(book, highlights, user)
     body += "\n\n(A formatted PDF of these highlights is attached.)"
-    subject = f"Highlights: {book.title}"
     send_email(
         user,
-        subject,
+        subject or f"Highlights: {book.title}",
         body,
+        to_addr=to_addr,
         attachment=_pdf_attachment(book, highlights, user),
         html_body=_email_html_body(book, highlights, user),
     )
 
 
-def send_selected_highlights_email(user, book, highlights):
+def send_selected_highlights_email(user, book, highlights, to_addr=None, subject=None):
     body = format_book_highlights(book, highlights, user)
     body += "\n\n(A formatted PDF of these highlights is attached.)"
-    subject = f"Selected highlights from {book.title}"
     send_email(
         user,
-        subject,
+        subject or f"Selected highlights from {book.title}",
         body,
+        to_addr=to_addr,
         attachment=_pdf_attachment(book, highlights, user),
         html_body=_email_html_body(book, highlights, user),
     )
