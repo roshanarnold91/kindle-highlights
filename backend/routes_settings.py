@@ -8,6 +8,7 @@ from email_service import (
     send_test_email,
 )
 from models import Book, Highlight, db
+from routes_books import _filtered_highlights_query
 
 settings_bp = Blueprint("settings", __name__, url_prefix="/api/settings")
 
@@ -96,7 +97,7 @@ def _parse_email_override(data):
 def email_book(book_id):
     book = Book.query.filter_by(id=book_id, user_id=current_user.id).first_or_404()
     highlights = (
-        Highlight.query.filter_by(book_id=book.id, user_id=current_user.id)
+        _filtered_highlights_query(book, request.args)
         .order_by(Highlight.date_added.asc().nullslast())
         .all()
     )

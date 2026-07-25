@@ -106,7 +106,7 @@ export default function BookDetailPage() {
   }
 
   async function handleSendEmail({ to, subject }) {
-    await api.post(`/settings/email/book/${bookId}`, { to, subject });
+    await api.post(`/settings/email/book/${bookId}?${buildFilterParams().toString()}`, { to, subject });
     showToast(`Email sent${to ? ` to ${to}` : ""}`);
   }
 
