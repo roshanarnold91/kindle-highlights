@@ -8,12 +8,9 @@ const statusStyles = {
 
 const statusLabels = { none: "Never copied", partial: "Partially copied", full: "Fully copied" };
 
-export default function BookCard({ book }) {
+function CardBody({ book }) {
   return (
-    <Link
-      to={`/books/${book.id}`}
-      className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-gray-800"
-    >
+    <>
       <div className="flex aspect-[2/3] items-center justify-center bg-gray-100 dark:bg-gray-800">
         {book.cover_url ? (
           <img src={book.cover_url} alt={book.title} className="h-full w-full object-cover" />
@@ -34,6 +31,42 @@ export default function BookCard({ book }) {
           {statusLabels[book.copy_status]}
         </span>
       </div>
+    </>
+  );
+}
+
+export default function BookCard({ book, selectMode, selected, onToggle }) {
+  if (selectMode) {
+    return (
+      <button
+        type="button"
+        onClick={() => onToggle(book.id)}
+        className={`relative flex flex-col overflow-hidden rounded-lg border-2 bg-white text-left shadow-sm transition hover:shadow-md dark:bg-gray-800 ${
+          selected
+            ? "border-blue-600 ring-2 ring-blue-300 dark:ring-blue-700"
+            : "border-gray-200 dark:border-gray-800"
+        }`}
+      >
+        <span
+          className={`absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border text-xs font-bold ${
+            selected
+              ? "border-blue-600 bg-blue-600 text-white"
+              : "border-gray-300 bg-white/90 text-transparent dark:border-gray-600 dark:bg-gray-900/80"
+          }`}
+        >
+          ✓
+        </span>
+        <CardBody book={book} />
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      to={`/books/${book.id}`}
+      className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-gray-800"
+    >
+      <CardBody book={book} />
     </Link>
   );
 }

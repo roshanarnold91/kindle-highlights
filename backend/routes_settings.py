@@ -136,3 +136,42 @@ def email_selected():
     except EmailError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify({"ok": True})
+
+
+@settings_bp.post("/email/bulk")
+@login_required
+def email_bulk():
+    data = request.get_json(silent=True) or {}
+    ids = data.get("book_ids") or []
+    if not ids:
+        return jsonify({"error": "no books selected"}), 400
+
+    books_by_id = {
+        b.id: b for b in Book.query.filter(Book.id.in_(ids), Book.user_id == current_user.id).all()
+    }
+    if not books_by_id:
+        return jsonify({"error": "no matching books found"}), 404
+
+    to_addr, subject_template, error = _parse_email_override(data)
+    if error:
+        return jsonify({"error": error}), 400
+
+    sent, failed = [], []
+    for book_id in ids:
+        book = books_by_id.get(book_id)
+        if not book:
+            failed.append({"book_id": book_id, "error": "book not found"})
+            continue
+        highlights = (
+            Highlight.query.filter_by(book_id=book.id, user_id=current_user.id)
+            .order_by(Highlight.date_added.asc().nullslast())
+            .all()
+        )
+        subject = subject_template.replace("{title}", book.title) if subject_template else None
+        try:
+            send_book_email(current_user, book, highlights, to_addr=to_addr, subject=subject)
+            sent.append(book_id)
+        except EmailError as exc:
+            failed.append({"book_id": book_id, "title": book.title, "error": str(exc)})
+
+    return jsonify({"sent": sent, "failed": failed})

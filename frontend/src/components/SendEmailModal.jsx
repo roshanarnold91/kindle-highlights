@@ -1,6 +1,13 @@
 import { useState } from "react";
 
-export default function SendEmailModal({ defaultSubject, onClose, onSend }) {
+export default function SendEmailModal({
+  defaultSubject,
+  subjectHint,
+  submitLabel = "Send",
+  sendingLabel = "Sending…",
+  onClose,
+  onSend,
+}) {
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState(defaultSubject);
   const [sending, setSending] = useState(false);
@@ -54,6 +61,7 @@ export default function SendEmailModal({ defaultSubject, onClose, onSend }) {
               onChange={(e) => setSubject(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             />
+            {subjectHint && <span className="mt-1 block text-xs text-gray-400">{subjectHint}</span>}
           </label>
 
           {error && (
@@ -75,7 +83,7 @@ export default function SendEmailModal({ defaultSubject, onClose, onSend }) {
               disabled={sending}
               className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
             >
-              {sending ? "Sending…" : "Send"}
+              {sending ? sendingLabel : submitLabel}
             </button>
           </div>
         </form>

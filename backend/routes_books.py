@@ -1,3 +1,5 @@
+import io
+import zipfile
 from datetime import datetime, timezone
 
 from flask import Blueprint, current_app, jsonify, request
@@ -150,6 +152,10 @@ def list_highlights(book_id):
     })
 
 
+def _safe_filename(title):
+    return "".join(c for c in title if c.isalnum() or c in " -_").strip() or "highlights"
+
+
 @books_bp.get("/books/<int:book_id>/export")
 @login_required
 def export_highlights(book_id):
@@ -157,7 +163,7 @@ def export_highlights(book_id):
     q = _filtered_highlights_query(book, request.args)
     highlights = q.order_by(Highlight.date_added.asc().nullslast()).all()
 
-    safe_name = "".join(c for c in book.title if c.isalnum() or c in " -_").strip() or "highlights"
+    safe_name = _safe_filename(book.title)
     fmt = request.args.get("format", "pdf")
 
     if fmt == "html":
@@ -172,6 +178,50 @@ def export_highlights(book_id):
     pdf_bytes = html_to_pdf_bytes(doc)
     response = current_app.response_class(pdf_bytes, mimetype="application/pdf")
     response.headers["Content-Disposition"] = f'attachment; filename="{safe_name}.pdf"'
+    return response
+
+
+@books_bp.post("/books/export-bulk")
+@login_required
+def export_bulk():
+    data = request.get_json(silent=True) or {}
+    ids = data.get("book_ids") or []
+    if not ids:
+        return jsonify({"error": "no books selected"}), 400
+
+    books_by_id = {
+        b.id: b for b in Book.query.filter(Book.id.in_(ids), Book.user_id == current_user.id).all()
+    }
+    if not books_by_id:
+        return jsonify({"error": "no matching books found"}), 404
+
+    buf = io.BytesIO()
+    used_names = set()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for book_id in ids:
+            book = books_by_id.get(book_id)
+            if not book:
+                continue
+            highlights = (
+                Highlight.query.filter_by(book_id=book.id, user_id=current_user.id)
+                .order_by(Highlight.date_added.asc().nullslast())
+                .all()
+            )
+            body_html = format_book_highlights_pdf(book, highlights, current_user)
+            doc = wrap_html_document(book.title, body_html)
+            pdf_bytes = html_to_pdf_bytes(doc)
+
+            base_name = _safe_filename(book.title)
+            name, n = f"{base_name}.pdf", 2
+            while name in used_names:
+                name = f"{base_name} ({n}).pdf"
+                n += 1
+            used_names.add(name)
+            zf.writestr(name, pdf_bytes)
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    response = current_app.response_class(buf.getvalue(), mimetype="application/zip")
+    response.headers["Content-Disposition"] = f'attachment; filename="highlights-export-{timestamp}.zip"'
     return response
 
 
